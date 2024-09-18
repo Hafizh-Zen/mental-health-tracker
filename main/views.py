@@ -18,7 +18,7 @@ from django.urls import reverse
 @login_required(login_url='/login')
 
 def show_main(request):
-    mood_entries = MoodEntry.objects.all()
+    mood_entries = MoodEntry.objects.filter(user=request.user)
 
     context = {
         'name': 'Pak Bepe',
@@ -26,6 +26,7 @@ def show_main(request):
         'npm': '2306123456',
         'mood_entries': mood_entries,
         'last_login': request.COOKIES['last_login'],
+        'name': request.user.username,
     }
 
     return render(request, "main.html", context)
@@ -34,7 +35,9 @@ def create_mood_entry(request):
     form = MoodEntryForm(request.POST or None)
 
     if form.is_valid() and request.method == "POST":
-        form.save()
+        mood_entry = form.save(commit=False)
+        mood_entry.user = request.user
+        mood_entry.save()
         return redirect('main:show_main')
 
     context = {'form': form}
@@ -85,12 +88,7 @@ def login_user(request):
             login(request, user)
             response = HttpResponseRedirect(reverse("main:show_main"))
             response.set_cookie('last_login', str(datetime.datetime.now()))
-            login(request, user)
-            response = HttpResponseRedirect(reverse("main:show_main"))
-            response.set_cookie('last_login', str(datetime.datetime.now()))
             return response
-            
-    
 
     else:
         form = AuthenticationForm(request)
